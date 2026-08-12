@@ -2,6 +2,14 @@
 
 All notable changes to `ctxscope` are documented here.
 
+## [Unreleased]
+
+### Added
+
+- A tested GitHub Actions report example with Markdown job summaries, JSON
+  artifacts, stack-trace rendering, a copyable failure-enforcement workflow,
+  and a manual repository showcase.
+
 ## [0.1.1] - 2026-08-12
 
 ### Added
@@ -40,5 +48,6 @@ Initial public release.
 
 - Scoped task labels are removed before a reusable worker accepts its next job.
 
+[Unreleased]: https://github.com/lov3g00d/ctxscope/compare/v0.1.1...HEAD
 [0.1.1]: https://github.com/lov3g00d/ctxscope/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/lov3g00d/ctxscope/releases/tag/v0.1.0

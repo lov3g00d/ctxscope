@@ -1,0 +1,62 @@
+name: ctxscope report showcase
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ctxscope-showcase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report-showcase:
+    name: Render an expected cancellation failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Detect the deliberate cancellation violation
+        id: ctxscope
+        continue-on-error: true
+        env:
+          CTXSCOPE_REPORT_PATH: ${{ runner.temp }}/ctxscope-report.json
+        run: >-
+          go test
+          -tags=ctxscope_demo_failure
+          -run '^TestFailureDemoRendersGitHubSummary$'
+          -count=1
+          -v
+          ./examples/cireport
+      - name: Upload the machine-readable report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: ctxscope-showcase-report
+          path: ${{ runner.temp }}/ctxscope-report.json
+          if-no-files-found: error
+      - name: Confirm the expected showcase result
+        if: always()
+        env:
+          CTXSCOPE_TEST_OUTCOME: ${{ steps.ctxscope.outcome }}
+        run: |
+          if [ "$CTXSCOPE_TEST_OUTCOME" != "failure" ]; then
+            echo "Expected ctxscope to detect the deliberate violation." >&2
+            exit 1
+          fi
+
+          {
+            echo "### Showcase verification"
+            echo
+            echo "ctxscope detected the deliberately detached goroutine as expected."
+            echo "The JSON report is available in the workflow artifacts."
+          } >> "$GITHUB_STEP_SUMMARY"

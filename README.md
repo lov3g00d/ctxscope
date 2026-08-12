@@ -119,6 +119,12 @@ with workers that exist before inspection begins.
 | [Background](examples/background) | Multiple named `Scope.Go` tasks and detached-child attribution. |
 | [Stress](examples/stress) | Repeated inspections, intermittent failures, and shutdown-latency percentiles. |
 | [Report](examples/report) | Versioned JSON output suitable for CI artifacts and other tooling. |
+| [CI report](examples/cireport) | Tested GitHub job-summary rendering, JSON artifacts, and failure enforcement. |
+
+[View the rendered failure summary](examples/cireport/testdata/failure.golden.md)
+or [run the live Actions showcase](https://github.com/lov3g00d/ctxscope/actions/workflows/ctxscope-showcase.yml).
+The showcase is manual and treats detection of its deliberately broken task as
+success, so it does not weaken or obscure the repository's real CI status.
 
 ## API
 
@@ -230,7 +236,7 @@ usual layout for a single-package Go library. Supporting material is separated:
 .
 ├── *.go                 public package and closely coupled implementation
 ├── internal/profiler    pprof capture and parsing
-├── examples             worker, pool, background, stress, and JSON examples
+├── examples             concurrency, JSON, and CI-report examples
 ├── docs                 design, limitations, tasks, and release guidance
 └── .github              CI and contribution automation
 ```
