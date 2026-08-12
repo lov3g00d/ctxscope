@@ -2,6 +2,16 @@
 
 All notable changes to `ctxscope` are documented here.
 
+## [0.1.1] - 2026-08-12
+
+### Added
+
+- Reusable worker-pool examples covering clean cancellation, tasks that never
+  start, tasks that remain running, and completed tasks with surviving
+  descendants.
+- Focused examples for named `Scope.Go` background tasks, `Stress` and
+  `StressScoped`, and versioned JSON reports.
+
 ## [0.1.0] - 2026-08-12
 
 Initial public release.
@@ -30,4 +40,5 @@ Initial public release.
 
 - Scoped task labels are removed before a reusable worker accepts its next job.
 
+[0.1.1]: https://github.com/lov3g00d/ctxscope/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/lov3g00d/ctxscope/releases/tag/v0.1.0

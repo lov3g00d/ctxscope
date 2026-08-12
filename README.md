@@ -31,7 +31,7 @@ descendants.
 `ctxscope` requires Go 1.24 or newer.
 
 ```bash
-go get github.com/lov3g00d/ctxscope@v0.1.0
+go get github.com/lov3g00d/ctxscope@v0.1.1
 ```
 
 ## Quick start
@@ -106,7 +106,19 @@ ctxscope.VerifyScoped(
 The task is registered before entering the queue. If it never starts, remains
 running, or returns while leaving a descendant behind, the report contains a
 typed violation and its registration stack. Read
-[Scoped tasks](docs/scoped-tasks.md) for the complete lifecycle model.
+[Scoped tasks](docs/scoped-tasks.md) for the complete lifecycle model. The
+[reusable pool example](examples/pool) demonstrates each lifecycle outcome
+with workers that exist before inspection begins.
+
+## Examples
+
+| Example | Focus |
+| --- | --- |
+| [Worker](examples/worker) | Introductory `Inspect` and `Verify` happy and failure paths. |
+| [Pool](examples/pool) | `Scope.Task` across a reusable queue, including pending, running, and descendant failures. |
+| [Background](examples/background) | Multiple named `Scope.Go` tasks and detached-child attribution. |
+| [Stress](examples/stress) | Repeated inspections, intermittent failures, and shutdown-latency percentiles. |
+| [Report](examples/report) | Versioned JSON output suitable for CI artifacts and other tooling. |
 
 ## API
 
@@ -218,7 +230,7 @@ usual layout for a single-package Go library. Supporting material is separated:
 .
 ├── *.go                 public package and closely coupled implementation
 ├── internal/profiler    pprof capture and parsing
-├── examples/worker      executable happy and failure examples
+├── examples             worker, pool, background, stress, and JSON examples
 ├── docs                 design, limitations, tasks, and release guidance
 └── .github              CI and contribution automation
 ```
