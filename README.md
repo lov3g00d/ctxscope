@@ -45,7 +45,7 @@ repository's normal CI status remains meaningful.
 `ctxscope` requires Go 1.24 or newer.
 
 ```bash
-go get github.com/lov3g00d/ctxscope@v0.1.2
+go get github.com/lov3g00d/ctxscope@v0.1.3
 ```
 
 ## Quick start

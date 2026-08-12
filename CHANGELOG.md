@@ -4,6 +4,8 @@ All notable changes to `ctxscope` are documented here.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-12
+
 ### Added
 
 - CI checks for Staticcheck, known Go vulnerabilities, GitHub Actions workflow
@@ -67,7 +69,8 @@ Initial public release.
 
 - Scoped task labels are removed before a reusable worker accepts its next job.
 
-[Unreleased]: https://github.com/lov3g00d/ctxscope/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/lov3g00d/ctxscope/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/lov3g00d/ctxscope/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/lov3g00d/ctxscope/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/lov3g00d/ctxscope/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/lov3g00d/ctxscope/releases/tag/v0.1.0

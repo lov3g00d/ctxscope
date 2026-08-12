@@ -12,7 +12,7 @@ body:
     attributes:
       label: ctxscope version
       description: Provide a tag, module version, or commit SHA.
-      placeholder: v0.1.2
+      placeholder: v0.1.3
     validations:
       required: true
   - type: input
