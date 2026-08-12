@@ -19,8 +19,9 @@ func TestRenderMarkdownMatchesGoldenFile(t *testing.T) {
 		t.Fatalf("read golden file: %v", err)
 	}
 
-	if got := RenderMarkdown(report); got != string(want) {
-		t.Fatalf("rendered summary differs from golden file\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	wantText := strings.ReplaceAll(string(want), "\r\n", "\n")
+	if got := RenderMarkdown(report); got != wantText {
+		t.Fatalf("rendered summary differs from golden file\n--- got ---\n%s\n--- want ---\n%s", got, wantText)
 	}
 }
 
