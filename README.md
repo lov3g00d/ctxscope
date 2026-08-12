@@ -26,12 +26,26 @@ descendants.
 > [!NOTE]
 > `ctxscope` is pre-v1. The API may change before the first stable release.
 
+## Showcase
+
+See how ctxscope presents a failed cancellation contract before integrating it:
+
+- [Rendered report preview](examples/cireport/testdata/failure.golden.md)
+- [Live Actions showcase](https://github.com/lov3g00d/ctxscope/actions/workflows/ctxscope-showcase.yml)
+- [Verified showcase run](https://github.com/lov3g00d/ctxscope/actions/runs/31603023512)
+
+The report includes task lifecycle violations, registration locations,
+surviving goroutines, and collapsible stack traces. The live workflow also
+uploads the complete versioned JSON report as an artifact. It is manual and
+treats detection of its deliberately broken task as success, so the
+repository's normal CI status remains meaningful.
+
 ## Install
 
 `ctxscope` requires Go 1.24 or newer.
 
 ```bash
-go get github.com/lov3g00d/ctxscope@v0.1.1
+go get github.com/lov3g00d/ctxscope@v0.1.2
 ```
 
 ## Quick start
@@ -121,10 +135,18 @@ with workers that exist before inspection begins.
 | [Report](examples/report) | Versioned JSON output suitable for CI artifacts and other tooling. |
 | [CI report](examples/cireport) | Tested GitHub job-summary rendering, JSON artifacts, and failure enforcement. |
 
-[View the rendered failure summary](examples/cireport/testdata/failure.golden.md)
-or [run the live Actions showcase](https://github.com/lov3g00d/ctxscope/actions/workflows/ctxscope-showcase.yml).
-The showcase is manual and treats detection of its deliberately broken task as
-success, so it does not weaken or obscure the repository's real CI status.
+## Documentation
+
+| Guide | Purpose |
+| --- | --- |
+| [Design](docs/design.md) | Ownership labels, profile capture, polling, and report construction. |
+| [Scoped tasks](docs/scoped-tasks.md) | Task lifecycle across worker pools, queues, and goroutine boundaries. |
+| [Limitations](docs/limitations.md) | Known boundaries and when another testing approach is more appropriate. |
+| [Comparison](docs/comparison.md) | How ctxscope relates to `goleak`, `testing/synctest`, Gomega `gleak`, and runtime profiles. |
+| [Release process](docs/releasing.md) | Versioning, validation, tagging, and publication steps. |
+| [Contributing](CONTRIBUTING.md) | Development workflow and contribution expectations. |
+| [Security](SECURITY.md) | How to report vulnerabilities privately. |
+| [Changelog](CHANGELOG.md) | Published releases and unreleased changes. |
 
 ## API
 
