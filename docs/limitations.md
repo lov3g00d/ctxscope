@@ -55,6 +55,11 @@ scheduler activity can make `Report.Elapsed` slightly longer. Use a grace period
 that reflects the expected shutdown time and avoid values so small that normal
 CI scheduling becomes significant.
 
+The final failing observation begins at or after the grace deadline. Because
+capturing the process goroutine profile takes time, `Report.Elapsed` includes
+that final capture and can exceed the configured grace period. Registered task
+states in the report are the states observed at the beginning of that capture.
+
 Profile polling uses adaptive backoff. A successful shutdown may therefore be
 observed up to the current polling interval after the final goroutine exits.
 

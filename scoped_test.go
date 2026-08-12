@@ -282,6 +282,9 @@ func TestInspectStartupTimeout(t *testing.T) {
 	if !reportHasViolation(report, ViolationStartupTimeout) {
 		t.Errorf("report does not contain startup violation: %+v", report.Violations)
 	}
+	if !reportHasViolation(report, ViolationShutdownTimeout) {
+		t.Errorf("report does not contain shutdown violation: %+v", report.Violations)
+	}
 
 	if report.StartupElapsed < startupTimeout {
 		t.Errorf(

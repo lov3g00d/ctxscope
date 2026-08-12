@@ -2,12 +2,35 @@ package ctxscope
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 )
+
+func TestInspectRejectsInvalidParentContext(t *testing.T) {
+	start := func(context.Context) {}
+
+	t.Run("nil", func(t *testing.T) {
+		//lint:ignore SA1012 nil is the invalid input under test
+		_, err := Inspect(nil, start)
+		if err == nil || !strings.Contains(err.Error(), "nil parent context") {
+			t.Fatalf("error = %v, want nil parent context error", err)
+		}
+	})
+
+	t.Run("already canceled", func(t *testing.T) {
+		parent, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		_, err := Inspect(parent, start)
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("error = %v, want context.Canceled", err)
+		}
+	})
+}
 
 func TestInspectPassesWhenGoroutineStops(t *testing.T) {
 	ready := make(chan struct{})

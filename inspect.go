@@ -127,7 +127,7 @@ func inspect(
 	}
 	cancel(cause)
 
-	survivors, elapsed, err := pollScope(
+	survivors, tasks, elapsed, err := pollScope(
 		scopeID,
 		cfg,
 		cancelledAt,
@@ -142,7 +142,6 @@ func inspect(
 	}
 
 	converted := convertGoroutines(survivors)
-	tasks := registry.snapshot()
 	attributeSurvivors(tasks, converted)
 
 	return Report{
@@ -212,30 +211,72 @@ func pollScope(
 	cfg config,
 	cancelledAt time.Time,
 	registry *taskRegistry,
-) ([]profiler.Goroutine, time.Duration, error) {
+) ([]profiler.Goroutine, []TaskReport, time.Duration, error) {
+	return pollScopeWith(
+		scopeID,
+		cfg,
+		cancelledAt,
+		registry,
+		profiler.CaptureScope,
+		time.Now,
+		time.Sleep,
+	)
+}
+
+type scopeCapture func(string) ([]profiler.Goroutine, error)
+
+func pollScopeWith(
+	scopeID string,
+	cfg config,
+	cancelledAt time.Time,
+	registry *taskRegistry,
+	capture scopeCapture,
+	now func() time.Time,
+	sleep func(time.Duration),
+) ([]profiler.Goroutine, []TaskReport, time.Duration, error) {
 	deadline := cancelledAt.Add(cfg.grace)
 	pollInterval := cfg.pollInterval
 
 	for {
-		survivors, err := profiler.CaptureScope(scopeID)
+		observationStartedAt := now()
+		finalObservation := !observationStartedAt.Before(deadline)
+		var tasks []TaskReport
+		if finalObservation {
+			// Keep final task state and the profile anchored to the same
+			// post-deadline observation.
+			tasks = registry.snapshot()
+		}
+
+		survivors, err := capture(scopeID)
 		if err != nil {
-			return nil, time.Since(cancelledAt), err
+			return nil, nil, now().Sub(cancelledAt), err
 		}
 
-		now := time.Now()
-		elapsed := now.Sub(cancelledAt)
+		observationCompletedAt := now()
+		elapsed := observationCompletedAt.Sub(cancelledAt)
 
+		if finalObservation {
+			if len(survivors) == 0 && !hasActiveTasks(tasks) {
+				return nil, tasks, elapsed, nil
+			}
+
+			return survivors, tasks, elapsed, nil
+		}
+		// A capture that crosses the deadline may contain pre-deadline stacks.
+		// Discard it and make the next observation entirely post-deadline.
+		if !observationCompletedAt.Before(deadline) {
+			continue
+		}
 		if len(survivors) == 0 && registry.active() == 0 {
-			return nil, elapsed, nil
+			tasks = registry.snapshot()
+			if !hasActiveTasks(tasks) {
+				return nil, tasks, elapsed, nil
+			}
 		}
 
-		if !now.Before(deadline) {
-			return survivors, elapsed, nil
-		}
-
-		sleepFor := min(pollInterval, time.Until(deadline))
+		sleepFor := min(pollInterval, deadline.Sub(observationCompletedAt))
 		if sleepFor > 0 {
-			time.Sleep(sleepFor)
+			sleep(sleepFor)
 		}
 
 		pollInterval = nextPollInterval(
@@ -321,7 +362,8 @@ func buildViolations(
 		violations = append(violations, Violation{
 			Kind: ViolationStartupTimeout,
 		})
-	} else if len(survivors) > 0 || hasActiveTasks(tasks) {
+	}
+	if len(survivors) > 0 || hasActiveTasks(tasks) {
 		violations = append(violations, Violation{
 			Kind: ViolationShutdownTimeout,
 		})

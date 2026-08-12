@@ -42,6 +42,16 @@ go test -race -count=1 ./...
 go vet ./...
 ```
 
+Run the repository analysis checks with the current toolchain provided by
+`nix develop` (the pinned analysis tools require Go 1.25 or newer):
+
+```bash
+go run honnef.co/go/tools/cmd/staticcheck@2026.1 ./...
+go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+nix flake check --all-systems --no-build
+```
+
 Keep tests deterministic. Goroutines created to simulate a leak must always be
 released before the test exits.
 

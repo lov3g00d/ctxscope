@@ -46,6 +46,31 @@ func TestVerifyPassesWhenGoroutineStops(t *testing.T) {
 	}
 }
 
+func TestVerifyScopedPassesWhenTaskStops(t *testing.T) {
+	done := make(chan struct{})
+	ready := make(chan struct{})
+
+	VerifyScoped(
+		t,
+		func(scope *Scope) {
+			scope.Go("cancellable task", func(ctx context.Context) {
+				defer close(done)
+				close(ready)
+				<-ctx.Done()
+			})
+			<-ready
+		},
+		WithGrace(time.Second),
+		WithPollInterval(time.Millisecond),
+	)
+
+	select {
+	case <-done:
+	default:
+		t.Error("scoped task has not stopped")
+	}
+}
+
 func TestVerifyReportsSurvivingGoroutine(t *testing.T) {
 	reporter := &recordingReporter{}
 	ready := make(chan struct{})
@@ -159,6 +184,62 @@ func TestVerifyScopedReportsPendingTask(t *testing.T) {
 				reporter.errors[0],
 			)
 		}
+	}
+}
+
+func TestFormatViolation(t *testing.T) {
+	tests := []struct {
+		name      string
+		violation Violation
+		want      string
+	}{
+		{
+			name:      "startup timeout",
+			violation: Violation{Kind: ViolationStartupTimeout},
+			want:      "start function exceeded the startup timeout",
+		},
+		{
+			name:      "shutdown timeout",
+			violation: Violation{Kind: ViolationShutdownTimeout},
+			want:      "operation work exceeded the shutdown grace period",
+		},
+		{
+			name: "unnamed pending task uses ID",
+			violation: Violation{
+				Kind:   ViolationTaskNeverStarted,
+				TaskID: "7",
+			},
+			want: `task "7" never started`,
+		},
+		{
+			name: "running task",
+			violation: Violation{
+				Kind:     ViolationTaskStillRunning,
+				TaskName: "flush",
+			},
+			want: `task "flush" is still running`,
+		},
+		{
+			name: "surviving descendant",
+			violation: Violation{
+				Kind:     ViolationTaskDescendantSurvived,
+				TaskName: "audit",
+			},
+			want: `task "audit" completed but left a descendant goroutine`,
+		},
+		{
+			name:      "future violation kind",
+			violation: Violation{Kind: ViolationKind("future_kind")},
+			want:      "future_kind",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := formatViolation(test.violation); got != test.want {
+				t.Errorf("formatViolation() = %q, want %q", got, test.want)
+			}
+		})
 	}
 }
 

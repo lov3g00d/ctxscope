@@ -58,6 +58,13 @@ Profile polling starts at `WithPollInterval` and doubles up to
 `WithMaxPollInterval`. This keeps detection responsive for fast shutdown while
 reducing repeated whole-process profile captures for longer grace periods.
 
+The final polling observation snapshots registered task state before capturing
+the goroutine profile. A failed deadline observation is accepted only when that
+observation began at or after the grace deadline. If a profile capture begins
+before the deadline and finishes after it, ctxscope discards that capture and
+immediately performs a fresh observation. This prevents pre-deadline stacks
+from being combined with post-capture task state in the final report.
+
 ## Why profiles
 
 The runtime profile provides both the labels needed for selection and the stack
