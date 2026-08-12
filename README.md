@@ -46,7 +46,7 @@ repository's normal CI status remains meaningful.
 `ctxscope` requires Go 1.24 or newer.
 
 ```bash
-go get github.com/lov3g00d/ctxscope@v0.1.3
+go get github.com/lov3g00d/ctxscope@v0.2.0
 ```
 
 ## Quick start
@@ -126,11 +126,6 @@ typed violation and its registration stack. Read
 with workers that exist before inspection begins.
 
 ### Task hierarchy
-
-> [!IMPORTANT]
-> Task hierarchy is currently available on `main` and is planned for v0.2.0.
-> To try it before that release, run
-> `go get github.com/lov3g00d/ctxscope@main`.
 
 Use the context passed to a task when registering its children:
 
