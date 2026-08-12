@@ -20,6 +20,10 @@ go test -count=1 -v ./examples/cireport
 go test -race -count=1 ./examples/cireport
 ```
 
+The task table renders `parent_id` relationships as a tree and names each
+parent explicitly. Registration details for a failing child also include its
+parent, while the JSON artifact retains the normalized ID relationship.
+
 ## Preview a real failure locally
 
 The failure demo is behind the same opt-in build tag as the other live demos:

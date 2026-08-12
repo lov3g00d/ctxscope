@@ -50,13 +50,16 @@ func RenderMarkdown(report ctxscope.Report) string {
 
 	if len(report.Tasks) > 0 {
 		output.WriteString("\n### Tasks\n\n")
-		output.WriteString("| Task | State | Attributed survivors |\n")
-		output.WriteString("| --- | --- | ---: |\n")
-		for _, task := range report.Tasks {
+		output.WriteString("| Task hierarchy | Parent | State | Attributed survivors |\n")
+		output.WriteString("| --- | --- | --- | ---: |\n")
+		tasksByID := indexTasks(report.Tasks)
+		for _, node := range orderedTasks(report.Tasks) {
+			task := node.task
 			fmt.Fprintf(
 				&output,
-				"| %s | `%s` | %d |\n",
-				tableValue(task.Name),
+				"| %s | %s | `%s` | %d |\n",
+				taskTreeValue(task.Name, node.depth),
+				parentTableValue(task.ParentID, tasksByID),
 				tableValue(string(task.State)),
 				survivorCount(task.Survivors),
 			)
@@ -121,6 +124,7 @@ func WriteArtifacts(
 }
 
 func writeTaskDiagnostics(output *strings.Builder, tasks []ctxscope.TaskReport) {
+	tasksByID := indexTasks(tasks)
 	wroteHeading := false
 	wroteTask := false
 	for _, task := range tasks {
@@ -137,12 +141,21 @@ func writeTaskDiagnostics(output *strings.Builder, tasks []ctxscope.TaskReport) 
 			output.WriteString("\n")
 		}
 
+		output.WriteString("<details>\n<summary>")
 		fmt.Fprintf(
 			output,
-			"<details>\n<summary>%s — <code>%s</code></summary>\n\n",
+			"%s — <code>%s</code>",
 			detailValue(task.Name),
 			html.EscapeString(string(task.State)),
 		)
+		if task.ParentID != "" {
+			parentName := task.ParentID
+			if parent, exists := tasksByID[task.ParentID]; exists && parent.Name != "" {
+				parentName = parent.Name
+			}
+			fmt.Fprintf(output, " — child of %s", detailValue(parentName))
+		}
+		output.WriteString("</summary>\n\n")
 		writeFrames(output, task.RegistrationStack)
 		output.WriteString("\n</details>\n")
 		wroteTask = true
@@ -204,4 +217,81 @@ func detailValue(value string) string {
 		return "unnamed task"
 	}
 	return html.EscapeString(value)
+}
+
+type renderedTask struct {
+	task  ctxscope.TaskReport
+	depth int
+}
+
+func orderedTasks(tasks []ctxscope.TaskReport) []renderedTask {
+	byID := indexTasks(tasks)
+	children := make(map[string][]int, len(tasks))
+	var roots []int
+	for index, task := range tasks {
+		_, parentExists := byID[task.ParentID]
+		if task.ParentID == "" || !parentExists || task.ParentID == task.ID {
+			roots = append(roots, index)
+			continue
+		}
+		children[task.ParentID] = append(children[task.ParentID], index)
+	}
+
+	ordered := make([]renderedTask, 0, len(tasks))
+	visited := make(map[int]bool, len(tasks))
+	var visit func(int, int)
+	visit = func(index, depth int) {
+		if visited[index] {
+			return
+		}
+		visited[index] = true
+		task := tasks[index]
+		ordered = append(ordered, renderedTask{task: task, depth: depth})
+		for _, childIndex := range children[task.ID] {
+			visit(childIndex, depth+1)
+		}
+	}
+
+	for _, root := range roots {
+		visit(root, 0)
+	}
+	for index := range tasks {
+		visit(index, 0)
+	}
+
+	return ordered
+}
+
+func indexTasks(tasks []ctxscope.TaskReport) map[string]ctxscope.TaskReport {
+	byID := make(map[string]ctxscope.TaskReport, len(tasks))
+	for _, task := range tasks {
+		if task.ID != "" {
+			byID[task.ID] = task
+		}
+	}
+	return byID
+}
+
+func taskTreeValue(name string, depth int) string {
+	if name == "" {
+		name = "unnamed task"
+	}
+	prefix := strings.Repeat("&nbsp;&nbsp;", depth)
+	if depth > 0 {
+		prefix += "↳ "
+	}
+	return prefix + tableValue(name)
+}
+
+func parentTableValue(
+	parentID string,
+	tasksByID map[string]ctxscope.TaskReport,
+) string {
+	if parentID == "" {
+		return "—"
+	}
+	if parent, exists := tasksByID[parentID]; exists && parent.Name != "" {
+		return tableValue(parent.Name)
+	}
+	return "`" + tableValue(parentID) + "`"
 }

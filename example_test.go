@@ -116,3 +116,44 @@ func ExampleInspectScoped_workerPool() {
 	// Output:
 	// passed=true task=refresh cache state=completed
 }
+
+func ExampleScope_GoChild() {
+	ready := make(chan struct{}, 2)
+
+	report, err := ctxscope.InspectScoped(
+		context.Background(),
+		func(scope *ctxscope.Scope) {
+			scope.Go("request", func(ctx context.Context) {
+				ready <- struct{}{}
+				scope.GoChild(ctx, "refresh cache", func(ctx context.Context) {
+					ready <- struct{}{}
+					<-ctx.Done()
+				})
+				<-ctx.Done()
+			})
+
+			<-ready
+			<-ready
+		},
+		ctxscope.WithGrace(time.Second),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if len(report.Tasks) != 2 {
+		fmt.Printf("unexpected task count: %d\n", len(report.Tasks))
+		return
+	}
+
+	root := report.Tasks[0]
+	child := report.Tasks[1]
+	fmt.Printf(
+		"passed=%t parent-linked=%t",
+		report.Passed(),
+		child.ParentID == root.ID,
+	)
+
+	// Output:
+	// passed=true parent-linked=true
+}

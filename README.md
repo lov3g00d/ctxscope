@@ -21,7 +21,8 @@ within the configured shutdown deadline.
 For worker pools and queues, scoped tasks explicitly carry ownership across
 goroutines that existed before the inspection began. They distinguish queued
 work that never started, tasks still running, and completed tasks that left
-descendants.
+descendants. Child-task APIs preserve the causal path when one task starts or
+queues another.
 
 > [!NOTE]
 > `ctxscope` is pre-v1. The API may change before the first stable release.
@@ -124,6 +125,33 @@ typed violation and its registration stack. Read
 [reusable pool example](examples/pool) demonstrates each lifecycle outcome
 with workers that exist before inspection begins.
 
+### Task hierarchy
+
+> [!IMPORTANT]
+> Task hierarchy is currently available on `main` and is planned for v0.2.0.
+> To try it before that release, run
+> `go get github.com/lov3g00d/ctxscope@main`.
+
+Use the context passed to a task when registering its children:
+
+```go
+scope.Go("HTTP request", func(ctx context.Context) {
+	scope.GoChild(ctx, "refresh account", func(ctx context.Context) {
+		pool.Submit(
+			scope.TaskChild(ctx, "write cache", func(ctx context.Context) {
+				writeCache(ctx)
+			}),
+		)
+	})
+})
+```
+
+The report stores the relationship through `TaskReport.ParentID`. Failure
+output and the CI renderer turn those IDs into a task tree, making it clear
+which child remained pending, kept running, or left a detached goroutine.
+See [Task hierarchy](docs/task-hierarchy.md) for the context and lifecycle
+rules.
+
 ## Examples
 
 | Example | Focus |
@@ -131,6 +159,7 @@ with workers that exist before inspection begins.
 | [Worker](examples/worker) | Introductory `Inspect` and `Verify` happy and failure paths. |
 | [Pool](examples/pool) | `Scope.Task` across a reusable queue, including pending, running, and descendant failures. |
 | [Background](examples/background) | Multiple named `Scope.Go` tasks and detached-child attribution. |
+| [Hierarchy](examples/hierarchy) | Nested `GoChild` and `TaskChild` work with clean and detached-descendant paths. |
 | [Stress](examples/stress) | Repeated inspections, intermittent failures, and shutdown-latency percentiles. |
 | [Report](examples/report) | Versioned JSON output suitable for CI artifacts and other tooling. |
 | [CI report](examples/cireport) | Tested GitHub job-summary rendering, JSON artifacts, and failure enforcement. |
@@ -141,6 +170,7 @@ with workers that exist before inspection begins.
 | --- | --- |
 | [Design](docs/design.md) | Ownership labels, profile capture, polling, and report construction. |
 | [Scoped tasks](docs/scoped-tasks.md) | Task lifecycle across worker pools, queues, and goroutine boundaries. |
+| [Task hierarchy](docs/task-hierarchy.md) | Parent-child registration, context rules, and causal diagnostics. |
 | [Limitations](docs/limitations.md) | Known boundaries and when another testing approach is more appropriate. |
 | [Comparison](docs/comparison.md) | How ctxscope relates to `goleak`, `testing/synctest`, Gomega `gleak`, and runtime profiles. |
 | [Release process](docs/releasing.md) | Versioning, validation, tagging, and publication steps. |
@@ -190,8 +220,10 @@ func InspectScoped(
 ```
 
 Provide a `Scope` that can register named one-shot tasks with `Task` or start
-them with `Go`. Reports include task states, lifecycle timestamps, typed
-violations, registration stacks, and attributed survivor stacks.
+them with `Go`. `TaskChild` and `GoChild` register nested work using a parent
+task's context. Reports include task relationships, states, lifecycle
+timestamps, typed violations, registration stacks, and attributed survivor
+stacks.
 
 ### `Stress` and `StressScoped`
 
@@ -231,7 +263,9 @@ maximum post-cancellation latency.
 
 `InspectScoped` also waits for registered tasks. Task wrappers reapply scope
 labels inside pre-existing worker goroutines, while the task registry makes
-pending work visible before it becomes a goroutine.
+pending work visible before it becomes a goroutine. Child wrappers store their
+parent task ID and replace the parent task's profiling label with their own, so
+survivors are attributed to the deepest registered owner.
 
 Read [Design](docs/design.md) for the implementation model and
 [Limitations](docs/limitations.md) before adopting the package in a large test

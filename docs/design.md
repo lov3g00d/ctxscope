@@ -54,6 +54,15 @@ goroutine stack until a worker begins executing it. Polling ends only when both
 the profile contains no scope survivors and every registered task has
 completed.
 
+Task callbacks receive a context containing an unexported identity for their
+scope and task ID. `GoChild` and `TaskChild` validate that identity before
+registering a child. The child wrapper derives its execution context from the
+supplied parent context, records the parent ID, and replaces the parent task's
+pprof task label with its own. Context values, deadlines, and cancellation
+still propagate, while surviving goroutines are attributed to the deepest
+registered task that owns them. A context from another inspection is rejected,
+which prevents cross-scope task trees.
+
 Profile polling starts at `WithPollInterval` and doubles up to
 `WithMaxPollInterval`. This keeps detection responsive for fast shutdown while
 reducing repeated whole-process profile captures for longer grace periods.

@@ -57,9 +57,10 @@ func TestReportJSONUsesStableFieldNames(t *testing.T) {
 		ScopeID:       "42",
 		Tasks: []TaskReport{
 			{
-				ID:    "1",
-				Name:  "queued task",
-				State: TaskPending,
+				ID:       "2",
+				ParentID: "1",
+				Name:     "queued task",
+				State:    TaskPending,
 			},
 		},
 		Violations: []Violation{
@@ -77,9 +78,10 @@ func TestReportJSONUsesStableFieldNames(t *testing.T) {
 	}
 
 	for _, fragment := range []string{
-		`"schema_version":1`,
+		`"schema_version":2`,
 		`"scope_id":"42"`,
 		`"tasks"`,
+		`"parent_id":"1"`,
 		`"state":"pending"`,
 		`"kind":"task_never_started"`,
 	} {

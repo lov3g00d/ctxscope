@@ -13,6 +13,7 @@ go run ./examples/report
 The output includes:
 
 - `schema_version` for consumers that persist or parse reports;
+- `parent_id` on nested tasks (`schema_version` 2 and newer);
 - the operation name, scope ID, cancellation time, and durations;
 - the pending task and its registration stack;
 - the operation-level `shutdown_timeout` and task-specific

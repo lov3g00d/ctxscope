@@ -3,7 +3,7 @@ package ctxscope
 import "time"
 
 // ReportSchemaVersion is the version of the JSON-compatible report model.
-const ReportSchemaVersion = 1
+const ReportSchemaVersion = 2
 
 // Frame identifies one function call in a captured goroutine stack.
 type Frame struct {
@@ -42,6 +42,9 @@ const (
 type TaskReport struct {
 	// ID uniquely identifies the task within its inspection.
 	ID string `json:"id"`
+	// ParentID identifies the task that registered this task. It is empty for a
+	// root task.
+	ParentID string `json:"parent_id,omitempty"`
 	// Name is the human-readable task name.
 	Name string `json:"name,omitempty"`
 	// State is the latest observed lifecycle state.

@@ -243,6 +243,79 @@ func TestFormatViolation(t *testing.T) {
 	}
 }
 
+func TestFormatFailureHandlesTaskParentCycle(t *testing.T) {
+	report := Report{
+		ScopeID: "cycle-scope",
+		Grace:   time.Second,
+		Tasks: []TaskReport{
+			{ID: "1", ParentID: "2", Name: "first", State: TaskPending},
+			{ID: "2", ParentID: "1", Name: "second", State: TaskPending},
+		},
+		Violations: []Violation{{Kind: ViolationShutdownTimeout}},
+	}
+
+	failure := formatFailure(report)
+	for _, name := range []string{"first", "second"} {
+		if count := strings.Count(failure, "- \""+name+"\" (id:"); count != 1 {
+			t.Errorf("hierarchy contains %q %d times, want once:\n%s", name, count, failure)
+		}
+	}
+}
+
+func TestFormatFailureShowsOnlyFailedTaskBranches(t *testing.T) {
+	report := Report{
+		ScopeID: "filtered-scope",
+		Grace:   time.Second,
+		Tasks: []TaskReport{
+			{ID: "1", Name: "request", State: TaskCompleted},
+			{ID: "2", ParentID: "1", Name: "healthy sibling", State: TaskCompleted},
+			{ID: "3", ParentID: "1", Name: "queued write", State: TaskPending},
+			{ID: "4", Name: "unrelated cleanup", State: TaskCompleted},
+		},
+		Violations: []Violation{
+			{Kind: ViolationTaskNeverStarted, TaskID: "3", TaskName: "queued write"},
+		},
+	}
+
+	failure := formatFailure(report)
+	for _, fragment := range []string{
+		`- "request" (id: 1, state: completed)`,
+		`- "queued write" (id: 3, state: pending)`,
+		"2 completed tasks omitted",
+	} {
+		if !strings.Contains(failure, fragment) {
+			t.Errorf("failure does not contain %q:\n%s", fragment, failure)
+		}
+	}
+	for _, omitted := range []string{"healthy sibling", "unrelated cleanup"} {
+		if strings.Contains(failure, omitted) {
+			t.Errorf("failure unexpectedly contains completed task %q:\n%s", omitted, failure)
+		}
+	}
+}
+
+func TestFormatFailureQuotesTaskHierarchyNames(t *testing.T) {
+	name := "worker\n\x1b[31mred"
+	report := Report{
+		ScopeID: "quoted-scope",
+		Grace:   time.Second,
+		Tasks: []TaskReport{
+			{ID: "1", Name: name, State: TaskPending},
+		},
+		Violations: []Violation{
+			{Kind: ViolationTaskNeverStarted, TaskID: "1", TaskName: name},
+		},
+	}
+
+	failure := formatFailure(report)
+	if !strings.Contains(failure, `- "worker\n\x1b[31mred" (id: 1, state: pending)`) {
+		t.Errorf("hierarchy does not contain the quoted task name:\n%s", failure)
+	}
+	if strings.Contains(failure, "- worker\n") || strings.Contains(failure, "\x1b") {
+		t.Errorf("hierarchy contains an unescaped task name:\n%s", failure)
+	}
+}
+
 type recordingReporter struct {
 	helperCalls int
 	errors      []string

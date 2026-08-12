@@ -20,6 +20,13 @@ type Scope struct {
 	registry *taskRegistry
 }
 
+type taskContextKey struct{}
+
+type taskContextValue struct {
+	scopeID string
+	taskID  string
+}
+
 // Context returns the operation context canceled by the inspection.
 func (scope *Scope) Context() context.Context {
 	return scope.ctx
@@ -34,16 +41,72 @@ func (scope *Scope) Task(
 	name string,
 	function func(context.Context),
 ) func() {
-	return scope.newTask(name, function, captureRegistrationFrames())
+	return scope.newTask(
+		scope.ctx,
+		"",
+		name,
+		function,
+		captureRegistrationFrames(),
+	)
 }
 
 // Go registers a named task and starts it in a new goroutine.
 func (scope *Scope) Go(name string, function func(context.Context)) {
-	task := scope.newTask(name, function, captureRegistrationFrames())
+	task := scope.newTask(
+		scope.ctx,
+		"",
+		name,
+		function,
+		captureRegistrationFrames(),
+	)
+	go task()
+}
+
+// TaskChild registers a named one-shot child of the task represented by
+// parent and returns a function suitable for a worker pool or job queue.
+// Parent must be the context passed to a task in this Scope, or a context
+// derived from it.
+//
+// The returned function must be called at most once. TaskChild panics if
+// parent is invalid or function is nil.
+func (scope *Scope) TaskChild(
+	parent context.Context,
+	name string,
+	function func(context.Context),
+) func() {
+	parentID := scope.parentTaskID(parent)
+	return scope.newTask(
+		parent,
+		parentID,
+		name,
+		function,
+		captureRegistrationFrames(),
+	)
+}
+
+// GoChild registers a named child of the task represented by parent and starts
+// it in a new goroutine. Parent must be the context passed to a task in this
+// Scope, or a context derived from it. GoChild panics if parent is invalid or
+// function is nil.
+func (scope *Scope) GoChild(
+	parent context.Context,
+	name string,
+	function func(context.Context),
+) {
+	parentID := scope.parentTaskID(parent)
+	task := scope.newTask(
+		parent,
+		parentID,
+		name,
+		function,
+		captureRegistrationFrames(),
+	)
 	go task()
 }
 
 func (scope *Scope) newTask(
+	parent context.Context,
+	parentID string,
 	name string,
 	function func(context.Context),
 	registrationStack []Frame,
@@ -52,7 +115,7 @@ func (scope *Scope) newTask(
 		panic("ctxscope: nil task function")
 	}
 
-	record := scope.registry.register(name, registrationStack)
+	record := scope.registry.register(parentID, name, registrationStack)
 	var invoked atomic.Bool
 
 	return func() {
@@ -68,18 +131,34 @@ func (scope *Scope) newTask(
 			scope.scopeID,
 			profiler.TaskLabel,
 			record.id,
+			profiler.TaskNameLabel,
+			name,
 		)
-		if name != "" {
-			labels = pprof.Labels(
-				profiler.ScopeLabel,
-				scope.scopeID,
-				profiler.TaskLabel,
-				record.id,
-				profiler.TaskNameLabel,
-				name,
-			)
-		}
 
-		pprof.Do(scope.ctx, labels, function)
+		taskContext := context.WithValue(
+			parent,
+			taskContextKey{},
+			taskContextValue{
+				scopeID: scope.scopeID,
+				taskID:  record.id,
+			},
+		)
+		pprof.Do(taskContext, labels, function)
 	}
+}
+
+func (scope *Scope) parentTaskID(parent context.Context) string {
+	if parent == nil {
+		panic("ctxscope: nil parent task context")
+	}
+
+	value, ok := parent.Value(taskContextKey{}).(taskContextValue)
+	if !ok || value.taskID == "" {
+		panic("ctxscope: parent context does not belong to a task")
+	}
+	if value.scopeID != scope.scopeID {
+		panic("ctxscope: parent context belongs to a different scope")
+	}
+
+	return value.taskID
 }

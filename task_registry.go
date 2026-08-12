@@ -15,6 +15,7 @@ type taskRegistry struct {
 
 type taskRecord struct {
 	id                string
+	parentID          string
 	name              string
 	state             TaskState
 	registeredAt      time.Time
@@ -24,6 +25,7 @@ type taskRecord struct {
 }
 
 func (registry *taskRegistry) register(
+	parentID string,
 	name string,
 	registrationStack []Frame,
 ) *taskRecord {
@@ -33,6 +35,7 @@ func (registry *taskRegistry) register(
 	registry.sequence++
 	record := &taskRecord{
 		id:                fmt.Sprintf("%d", registry.sequence),
+		parentID:          parentID,
 		name:              name,
 		state:             TaskPending,
 		registeredAt:      time.Now(),
@@ -81,6 +84,7 @@ func (registry *taskRegistry) snapshot() []TaskReport {
 	for index, task := range registry.tasks {
 		tasks[index] = TaskReport{
 			ID:                task.id,
+			ParentID:          task.parentID,
 			Name:              task.name,
 			State:             task.state,
 			RegisteredAt:      task.registeredAt,

@@ -56,6 +56,24 @@ ctxscope.VerifyScoped(t, func(scope *ctxscope.Scope) {
 This provides task lifecycle information and a registration stack in addition
 to ordinary survivor stacks.
 
+## Nested work
+
+Use `Scope.GoChild` and `Scope.TaskChild` when a task creates more registered
+work. They record the parent ID and keep survivor attribution on the deepest
+registered task:
+
+```go
+scope.Go("request", func(ctx context.Context) {
+	scope.GoChild(ctx, "refresh", func(ctx context.Context) {
+		queue <- scope.TaskChild(ctx, "persist", persist)
+	})
+})
+```
+
+The first argument must be the context passed to the parent task, or a context
+derived from it. Read [Task hierarchy](task-hierarchy.md) for the complete
+contract and diagnostics.
+
 ## Failure categories
 
 `Report.Violations` contains typed failures:
@@ -68,15 +86,16 @@ to ordinary survivor stacks.
 | `task_still_running` | A task function was still executing. |
 | `task_descendant_survived` | A task returned but one of its labeled descendants remained. |
 
-`Report.Tasks` includes registration, start, and completion timestamps. A task
-that has attributable survivors also contains them in `TaskReport.Survivors`.
-The top-level `Report.Survivors` remains available for callers that do not need
-task-level grouping.
+`Report.Tasks` includes parent IDs plus registration, start, and completion
+timestamps. A task that has attributable survivors also contains them in
+`TaskReport.Survivors`. The top-level `Report.Survivors` remains available for
+callers that do not need task-level grouping.
 
 All report fields are exported, so reports can be encoded directly with
 `encoding/json` for CI artifacts or other tooling. Duration fields use explicit
 `*_ns` JSON names and contain nanoseconds. `schema_version` allows integrations
-to detect future report-format changes.
+to detect report-format changes. Schema version 2 adds the optional
+`parent_id` task field; it is absent for root tasks.
 
 ## Task contract
 

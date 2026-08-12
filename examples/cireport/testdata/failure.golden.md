@@ -7,7 +7,7 @@
 | Status | **Failed** |
 | Grace period | `250ms` |
 | Shutdown observation | `250ms` |
-| Registered tasks | 1 |
+| Registered tasks | 2 |
 | Surviving goroutines | 1 |
 
 ### Violations
@@ -19,14 +19,15 @@
 
 ### Tasks
 
-| Task | State | Attributed survivors |
-| --- | --- | ---: |
-| refresh cache | `completed` | 1 |
+| Task hierarchy | Parent | State | Attributed survivors |
+| --- | --- | --- | ---: |
+| refresh pipeline | — | `completed` | 0 |
+| &nbsp;&nbsp;↳ refresh cache | refresh pipeline | `completed` | 1 |
 
 ### Task registration stacks
 
 <details>
-<summary>refresh cache — <code>completed</code></summary>
+<summary>refresh cache — <code>completed</code> — child of refresh pipeline</summary>
 
 ```text
 example.com/service.submitRefresh

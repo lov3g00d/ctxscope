@@ -29,6 +29,11 @@ as a worker pool. The returned wrapper is one-shot and must be registered
 before the inspection can finish; ctxscope cannot discover arbitrary functions
 retained by external systems without explicit registration.
 
+The same boundary applies to task hierarchy. `GoChild` and `TaskChild` record
+only children registered explicitly with the parent task's context. Raw child
+goroutines still inherit profiling labels and can be attributed as survivors,
+but they do not become separate `TaskReport` entries.
+
 Go does not expose the current goroutine's label set. After a scoped task,
 `pprof.Do` restores labels from the inspection's parent context. This guarantees
 that ctxscope's operation label does not remain on an ordinary pool worker. A

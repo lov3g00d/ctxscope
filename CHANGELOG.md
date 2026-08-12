@@ -4,6 +4,15 @@ All notable changes to `ctxscope` are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `Scope.GoChild` and `Scope.TaskChild` for recording parent-child relationships
+  across goroutines, derived contexts, worker pools, and queues.
+- Task hierarchy rendering in test failures and the GitHub Actions report
+  example, with causal survivor attribution to the owning child task.
+- `TaskReport.ParentID` and report schema version 2 for machine-readable task
+  relationships.
+
 ## [0.1.3] - 2026-08-12
 
 ### Added

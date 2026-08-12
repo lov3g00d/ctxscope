@@ -120,7 +120,7 @@ func TestPollScopeKeepsTaskStateFromFinalObservationStart(t *testing.T) {
 	cancelledAt := time.Unix(1_700_000_000, 0)
 	current := cancelledAt.Add(10 * time.Millisecond)
 	registry := &taskRegistry{}
-	record := registry.register("finishing task", nil)
+	record := registry.register("", "finishing task", nil)
 	registry.start(record)
 
 	survivors, tasks, _, err := pollScopeWith(
@@ -173,7 +173,7 @@ func TestPollScopeReportsTrueCompletedTaskDescendant(t *testing.T) {
 	cancelledAt := time.Unix(1_700_000_000, 0)
 	current := cancelledAt.Add(10 * time.Millisecond)
 	registry := &taskRegistry{}
-	record := registry.register("parent task", nil)
+	record := registry.register("", "parent task", nil)
 	registry.start(record)
 	registry.complete(record)
 

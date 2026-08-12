@@ -118,6 +118,25 @@ func TestRenderMarkdownFromRealInspection(t *testing.T) {
 	}
 }
 
+func TestRenderMarkdownOrdersTaskHierarchy(t *testing.T) {
+	summary := RenderMarkdown(ctxscope.Report{
+		ScopeID: "scope-tree",
+		Grace:   time.Second,
+		Tasks: []ctxscope.TaskReport{
+			{ID: "3", ParentID: "2", Name: "grandchild", State: ctxscope.TaskCompleted},
+			{ID: "1", Name: "root", State: ctxscope.TaskCompleted},
+			{ID: "2", ParentID: "1", Name: "child", State: ctxscope.TaskCompleted},
+		},
+	})
+
+	root := strings.Index(summary, "| root |")
+	child := strings.Index(summary, "↳ child | root |")
+	grandchild := strings.Index(summary, "↳ grandchild | child |")
+	if root < 0 || child < root || grandchild < child {
+		t.Fatalf("tasks are not rendered in hierarchy order:\n%s", summary)
+	}
+}
+
 func exampleReport() ctxscope.Report {
 	survivor := ctxscope.Goroutine{
 		Count: 1,
@@ -140,8 +159,14 @@ func exampleReport() ctxscope.Report {
 		Tasks: []ctxscope.TaskReport{
 			{
 				ID:    "task-1",
-				Name:  "refresh cache",
+				Name:  "refresh pipeline",
 				State: ctxscope.TaskCompleted,
+			},
+			{
+				ID:       "task-2",
+				ParentID: "task-1",
+				Name:     "refresh cache",
+				State:    ctxscope.TaskCompleted,
 				RegistrationStack: []ctxscope.Frame{
 					{
 						Function: "example.com/service.submitRefresh",
@@ -156,7 +181,7 @@ func exampleReport() ctxscope.Report {
 			{Kind: ctxscope.ViolationShutdownTimeout},
 			{
 				Kind:     ctxscope.ViolationTaskDescendantSurvived,
-				TaskID:   "task-1",
+				TaskID:   "task-2",
 				TaskName: "refresh cache",
 			},
 		},

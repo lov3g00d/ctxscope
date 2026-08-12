@@ -15,23 +15,28 @@ import (
 func TestFailureDemoRendersGitHubSummary(t *testing.T) {
 	childReady := make(chan struct{})
 	childDone := make(chan struct{})
-	parentDone := make(chan struct{})
+	childTaskDone := make(chan struct{})
+	parentTaskDone := make(chan struct{})
 	releaseChild := make(chan struct{})
 
 	report, err := ctxscope.InspectScoped(
 		t.Context(),
 		func(scope *ctxscope.Scope) {
-			scope.Go("detached audit write", func(context.Context) {
-				defer close(parentDone)
-				go func() {
-					defer close(childDone)
-					close(childReady)
-					<-releaseChild
-				}()
+			scope.Go("audit pipeline", func(ctx context.Context) {
+				defer close(parentTaskDone)
+				scope.GoChild(ctx, "detached audit write", func(context.Context) {
+					defer close(childTaskDone)
+					go func() {
+						defer close(childDone)
+						close(childReady)
+						<-releaseChild
+					}()
+				})
+				<-childTaskDone
 			})
 
 			<-childReady
-			<-parentDone
+			<-parentTaskDone
 		},
 		ctxscope.WithName("audit shutdown"),
 		ctxscope.WithGrace(20*time.Millisecond),
