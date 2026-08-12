@@ -1,0 +1,33 @@
+# Changelog
+
+All notable changes to `ctxscope` are documented here.
+
+## [0.1.0] - 2026-08-12
+
+Initial public release.
+
+### Added
+
+- Operation-scoped cancellation verification through `Inspect` and `Verify`.
+- Goroutine ownership using inherited pprof labels instead of process-wide
+  goroutine counts.
+- Structured survivor reports containing labels and stack frames.
+- Configurable operation names, startup deadlines, shutdown grace periods, and
+  adaptive profile polling.
+- `InspectScoped`, `VerifyScoped`, `Scope.Task`, and `Scope.Go` for tracking
+  named work across worker pools and queues.
+- Typed violations for startup timeouts, shutdown timeouts, tasks that never
+  start, tasks still running, and completed tasks with surviving descendants.
+- Task registration stacks, lifecycle timestamps, attributed survivor stacks,
+  and versioned JSON report fields.
+- `Stress` and `StressScoped` for repeated verification with failure counts and
+  shutdown-latency percentiles.
+- Executable happy-path, failure-path, stack-trace, and worker-pool examples.
+- Nix development environment, multi-version CI, contributor documentation,
+  comparison guidance, and release documentation.
+
+### Fixed
+
+- Scoped task labels are removed before a reusable worker accepts its next job.
+
+[0.1.0]: https://github.com/lov3g00d/ctxscope/releases/tag/v0.1.0

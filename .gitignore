@@ -1,0 +1,6 @@
+.direnv/
+.DS_Store
+*.test
+coverage.out
+result
+result-*

@@ -1,0 +1,54 @@
+name: Bug report
+description: Report incorrect behavior or an unexpected failure.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Do not report security vulnerabilities here. Follow SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: ctxscope version
+      description: Provide a tag, module version, or commit SHA.
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      placeholder: go1.26.5 linux/amd64
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Explain the expected and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest runnable test that demonstrates the problem.
+      render: go
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Test output
+      description: Include relevant test, race-detector, or stack output.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: This report does not contain a security vulnerability.
+          required: true
